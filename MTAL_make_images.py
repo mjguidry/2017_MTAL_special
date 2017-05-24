@@ -44,12 +44,12 @@ def color_maps(input_csv,output_png):
                                        '#550000'],
                               'party':'R'}
     
-    candidates['WICKS'] ={'color':'','party':'I'}
-    candidates['WRITE IN']   ={'color':'','party':'I'}
+    candidates['WICKS'] ={'color':'','party':'L'}
+    #candidates['WRITE IN']   ={'color':'','party':'I'}
     
     for candidate in candidates:
         if(candidates[candidate]['color']==''):
-            if(candidates[candidate]['party']=='I'):                
+            if(candidates[candidate]['party']=='L'):                
                 candidates[candidate]['color']=['#f8edcc',
                                                 '#f1db99',
                                                 '#eac966',
@@ -93,25 +93,35 @@ def color_maps(input_csv,output_png):
     votes_dict=dict()
     votes_file=open(input_csv,'rb')
     reader=csv.reader(votes_file)
+
     #headers = reader.next()
     #cand_col=[i for i,x in enumerate(headers) if 'CandidateName' in x][0]
     #prec_col=[i for i,x in enumerate(headers) if 'countyName' in x][0]
     #votes_col=[i for i,x in enumerate(headers) if 'Votes' in x][0]
     cand_col=5
     prec_col=4
+    county_col=3
     votes_col=7
+    precinct_dict=dict()
     for row in reader:
+        precinct=row[county_col] + ' ' + row[prec_col]
+        if(precinct not in precinct_dict):
+            precinct_dict[precinct]=0
         cname=row[cand_col]
         candidate=[c for c in candidates if c in cname.upper()][0]
-        county=row[prec_col]
+        county=row[county_col]
         county=re.sub('\s+$','',county)
         votes=int(row[votes_col])
+        precinct_dict[precinct]+=votes
         if(county not in votes_dict):
             votes_dict[county]=dict()
         if(candidate not in votes_dict[county]):
             votes_dict[county][candidate]=votes
         else:
             votes_dict[county][candidate]=votes_dict[county][candidate]+votes
+    
+    precincts_reporting=len([precinct for precincts in precinct_dict if precinct_dict[precinct]>0])
+    precincts=len(precinct_dict)
     
     im = Image.open("./data_files/MTAL_BW.png")
     im2 = Image.open("./data_files/MT_geo.png")
@@ -144,7 +154,10 @@ def color_maps(input_csv,output_png):
             # Color all candidates map, check if only one top votegetter, otherwise a tie
             best_votes=votes_dict[county][best]
             next_best_votes=votes_dict[county][next_best]
-            best_margin=float(best_votes-next_best_votes)/all_votes
+            if(all_votes>0):
+                best_margin=float(best_votes-next_best_votes)/all_votes
+            else:
+                best_margin=0
             if(best_margin>0.5):
                 color=ImageColor.getcolor(candidates[best]['color'][7],mode)
             elif(best_margin>0.4):
@@ -165,8 +178,11 @@ def color_maps(input_csv,output_png):
                 color=gray
             if(best_votes>0):
                 ImageDraw.floodfill(img_all,(county_xy[county][0],county_xy[county][1]),color)
-
-            gianforte_margin=float(votes_dict[county]['GIANFORTE']-votes_dict[county]['QUIST'])/all_votes
+            
+            if(all_votes>0):
+                gianforte_margin=float(votes_dict[county]['GIANFORTE']-votes_dict[county]['QUIST'])/all_votes
+            else:
+                gianforte_margin=0.
             # Comparison map, how Gianforte is doing vs 2016 GOV
             delta_gov=gianforte_margin-margins_gov_2016[county]
             if(delta_gov>0):
@@ -220,7 +236,13 @@ def color_maps(input_csv,output_png):
                 color=gray
             if(all_votes>0):
                 ImageDraw.floodfill(img_comp_house,(county_xy[county][0],county_xy[county][1]),color)
-
+        
+    all_votes_dict=dict()
+    for cand in candidates:
+        all_votes_dict[cand]=sum([votes_dict[county][cand] for county in votes_dict])
+    all_votes=sum(all_votes_dict[cand] for cand in candidates)
+    order=sorted(all_votes_dict,key=all_votes_dict.get,reverse=True)
+    
     img_combine=Image.new(mode,(1530,986),"white")
     yt=58+377/2
     yb=58+377+58*2+377/2
@@ -257,10 +279,19 @@ def color_maps(input_csv,output_png):
     
     margins=['> 0%','> 5%','>10%','>15%','>20%','>30%','>40%','>50%']
     for k in range(8):
-        draw.rectangle((xc-4*50+50*k,yc-25,xc-4*50+50*(k+1),yc),fill=candidates['QUIST']['color'][k],outline=black)
-        draw.rectangle((xc-4*50+50*k,yc,xc-4*50+50*(k+1),yc+25),fill=candidates['GIANFORTE']['color'][k],outline=black)
-        draw.text((xc-4*50+50*k,yc-50),margins[k],black,font=font_half)        
-        
+        draw.rectangle((xr-4*50+50*k,yc-25,xr-4*50+50*(k+1),yc),fill=candidates['QUIST']['color'][k],outline=black)
+        draw.rectangle((xr-4*50+50*k,yc,xr-4*50+50*(k+1),yc+25),fill=candidates['GIANFORTE']['color'][k],outline=black)
+        draw.text((xr-4*50+50*k,yc-50),margins[k],black,font=font_half)
+    
+    for k,cand in enumerate(order):
+        draw.text((xl-125,yc-50+25*k),cand+' ('+candidates[cand]['party']+')',candidates[cand]['color'][3],font=font_half)
+        if(all_votes>0):
+            draw.text((xl,yc-50+25*k),'%5s' % str(100*round(float(all_votes_dict[cand])/all_votes,3))+'%',black,font=font_half)
+        else:
+            draw.text((xl,yc-50+25*k),'%5s' % str(0.0)+'%',black,font=font_half)
+            
+    draw.text((xc-90,986-38),str(precincts_reporting)+'/'+str(precincts)+' precincts reporting',black,font=font_half)    
+    
     img_combine.save(output_png)
 
     img_all.close()
