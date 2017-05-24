@@ -24,21 +24,40 @@ def color_maps(input_csv,output_png):
     
     #Candidate profiles
     candidates={}
-    candidates['QUIST']    ={'color':['#9999ff','#0000ff','#0000dd','#000099'],'party':'D'}
+    candidates['QUIST']    ={'color':['#ccccff',
+                                      '#9999ff',
+                                      '#6666ff',
+                                      '#0000ff', 
+                                      '#0000cc', 
+                                      '#000099',
+                                      '#000077',
+                                      '#000055'], 
+                             'party':'D'}
     
-    candidates['GIANFORTE']    ={'color':['#ff9999','#ff0000','#dd0000','#990000'],'party':'R'}
+    candidates['GIANFORTE'] ={'color':['#ffcccc',
+                                       '#ff9999',
+                                       '#ff6666',
+                                       '#ff0000',
+                                       '#cc0000',
+                                       '#990000',
+                                       '#770000',
+                                       '#550000'],
+                              'party':'R'}
     
     candidates['WICKS'] ={'color':'','party':'I'}
     candidates['WRITE IN']   ={'color':'','party':'I'}
     
     for candidate in candidates:
         if(candidates[candidate]['color']==''):
-            if(candidates[candidate]['party']=='D'):
-                candidates[candidate]['color']=['#99f4ff','#00e6ff','#00c7dd','#008a99']
-            elif(candidates[candidate]['party']=='R'):
-                candidates[candidate]['color']=['#ff99f4','#ff00e6','#dd00c7','#99008a']
-            else:
-                candidates[candidate]['color']=['#ffd799','#ff9900','#dd8500','#995b00']
+            if(candidates[candidate]['party']=='I'):                
+                candidates[candidate]['color']=['#f8edcc',
+                                                '#f1db99',
+                                                '#eac966',
+                                                '#dd8500',
+                                                '#b08400',
+                                                '#846300',
+                                                '#695300',
+                                                '#473100']
     
     # Grab coordinates for each county
     county_xy=dict()
@@ -87,28 +106,34 @@ def color_maps(input_csv,output_png):
         county=row[prec_col]
         county=re.sub('\s+$','',county)
         votes=int(row[votes_col])
-        if(county!='Marietta 5B'):
-            if(county not in votes_dict):
-                votes_dict[county]=dict()
-            if(candidate not in votes_dict[county]):
-                votes_dict[county][candidate]=votes
-            else:
-                votes_dict[county][candidate]=votes_dict[county][candidate]+votes
+        if(county not in votes_dict):
+            votes_dict[county]=dict()
+        if(candidate not in votes_dict[county]):
+            votes_dict[county][candidate]=votes
+        else:
+            votes_dict[county][candidate]=votes_dict[county][candidate]+votes
     
     im = Image.open("./data_files/MTAL_BW.png")
+    im2 = Image.open("./data_files/MT_geo.png")
 
     size=im.size
-    xsize=im.size[0]
-    ysize=im.size[1]    
+    xsize=size[0]
+    ysize=size[1]    
+
+    size=im2.size
+    xsize_geo=size[0]
+    ysize_geo=size[1]    
 
     img_all=im.copy() # Top individual vote getters
     img_comp_gov=im.copy() # Compare Gianforte vs 2016 gov
     img_comp_house=im.copy() # Compare Gianforte vs 2016 house
+    img_geo=im2.copy() # Geographic accurate
     
     mode="RGB"
     #img=img.convert(mode)
     white=ImageColor.getcolor('white',mode)
     black=ImageColor.getcolor('black',mode)
+    gray=ImageColor.getcolor('gray',mode)
     for county in votes_dict:
         if(county in county_xy):
             all_votes=sum([votes_dict[county][candidate] for candidate in votes_dict[county]])
@@ -120,7 +145,15 @@ def color_maps(input_csv,output_png):
             best_votes=votes_dict[county][best]
             next_best_votes=votes_dict[county][next_best]
             best_margin=float(best_votes-next_best_votes)/all_votes
-            if(best_margin>0.2):
+            if(best_margin>0.5):
+                color=ImageColor.getcolor(candidates[best]['color'][7],mode)
+            elif(best_margin>0.4):
+                color=ImageColor.getcolor(candidates[best]['color'][6],mode)
+            elif(best_margin>0.3):
+                color=ImageColor.getcolor(candidates[best]['color'][5],mode)
+            elif(best_margin>0.2):
+                color=ImageColor.getcolor(candidates[best]['color'][4],mode)
+            elif(best_margin>0.15):
                 color=ImageColor.getcolor(candidates[best]['color'][3],mode)
             elif(best_margin>0.1):
                 color=ImageColor.getcolor(candidates[best]['color'][2],mode)
@@ -129,74 +162,105 @@ def color_maps(input_csv,output_png):
             elif(best_margin>0.):
                 color=ImageColor.getcolor(candidates[best]['color'][0],mode)
             elif(best_votes>0):
-                color=white
+                color=gray
             if(best_votes>0):
                 ImageDraw.floodfill(img_all,(county_xy[county][0],county_xy[county][1]),color)
 
             gianforte_margin=float(votes_dict[county]['GIANFORTE']-votes_dict[county]['QUIST'])/all_votes
             # Comparison map, how Gianforte is doing vs 2016 GOV
             delta_gov=gianforte_margin-margins_gov_2016[county]
-            if(delta_gov>0.2):
-                color=ImageColor.getcolor(candidates['GIANFORTE']['color'][3],mode)
-            elif(delta_gov>0.1):
-                color=ImageColor.getcolor(candidates['GIANFORTE']['color'][2],mode)
-            elif(delta_gov>0.05):
-                color=ImageColor.getcolor(candidates['GIANFORTE']['color'][1],mode)
-            elif(delta_gov>0.):
-                color=ImageColor.getcolor(candidates['GIANFORTE']['color'][0],mode)
-            elif(delta_gov>-0.05):
-                color=ImageColor.getcolor(candidates['QUIST']['color'][0],mode)
-            elif(delta_gov>-0.1):
-                color=ImageColor.getcolor(candidates['QUIST']['color'][1],mode)
-            elif(delta_gov>-0.2):
-                color=ImageColor.getcolor(candidates['QUIST']['color'][2],mode)
+            if(delta_gov>0):
+                cand_color='GIANFORTE'
             else:
-                color=ImageColor.getcolor(candidates['QUIST']['color'][3],mode)
+                cand_color='QUIST'
+            if(abs(delta_gov)>0.5):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][7],mode)
+            elif(abs(delta_gov)>0.4):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][6],mode)
+            elif(abs(delta_gov)>0.3):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][5],mode)
+            elif(abs(delta_gov)>0.2):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][4],mode)
+            elif(abs(delta_gov)>0.15):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][3],mode)
+            elif(abs(delta_gov)>0.1):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][2],mode)
+            elif(abs(delta_gov)>0.05):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][1],mode)
+            elif(abs(delta_gov)>0.):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][0],mode)
+            elif(best_votes>0):
+                color=gray
             if(all_votes>0):
                 ImageDraw.floodfill(img_comp_gov,(county_xy[county][0],county_xy[county][1]),color)
             
             # Comparison map, how Gianforte is doing vs 2016 house
             delta_house=gianforte_margin-margins_house_2016[county]
-            if(delta_house>0.2):
-                color=ImageColor.getcolor(candidates['GIANFORTE']['color'][3],mode)
-            elif(delta_house>0.1):
-                color=ImageColor.getcolor(candidates['GIANFORTE']['color'][2],mode)
-            elif(delta_house>0.05):
-                color=ImageColor.getcolor(candidates['GIANFORTE']['color'][1],mode)
-            elif(delta_house>0.):
-                color=ImageColor.getcolor(candidates['GIANFORTE']['color'][0],mode)
-            elif(delta_house>-0.05):
-                color=ImageColor.getcolor(candidates['QUIST']['color'][0],mode)
-            elif(delta_house>-0.1):
-                color=ImageColor.getcolor(candidates['QUIST']['color'][1],mode)
-            elif(delta_house>-0.2):
-                color=ImageColor.getcolor(candidates['QUIST']['color'][2],mode)
+            if(delta_house>0):
+                cand_color='GIANFORTE'
             else:
-                color=ImageColor.getcolor(candidates['QUIST']['color'][3],mode)
+                cand_color='QUIST'
+            if(abs(delta_house)>0.5):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][7],mode)
+            elif(abs(delta_house)>0.4):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][6],mode)
+            elif(abs(delta_house)>0.3):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][5],mode)
+            elif(abs(delta_house)>0.2):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][4],mode)
+            elif(abs(delta_house)>0.15):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][3],mode)
+            elif(abs(delta_house)>0.1):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][2],mode)
+            elif(abs(delta_house)>0.05):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][1],mode)
+            elif(abs(delta_house)>0.):
+                color=ImageColor.getcolor(candidates[cand_color]['color'][0],mode)
+            elif(best_votes>0):
+                color=gray
             if(all_votes>0):
                 ImageDraw.floodfill(img_comp_house,(county_xy[county][0],county_xy[county][1]),color)
 
-    img_combine=Image.new(mode,(2*xsize,2*ysize),"white")
+    img_combine=Image.new(mode,(1530,986),"white")
+    yt=58+377/2
+    yb=58+377+58*2+377/2
+    xl=58+649/2
+    xr=58+649+58*2+649/2
+    xc=58+649+58
+    yc=58+377+58
+    
     img_ddhq=Image.open('./data_files/cropped-ddhq-icon.png')
-
-    img_combine.paste(img_all,(1*xsize/2,0,3*xsize/2,ysize))
-    img_combine.paste(img_comp_gov,(0,ysize,xsize,2*ysize))
-    img_combine.paste(img_comp_house,(xsize,ysize,2*xsize,2*ysize))
+    img_combine.paste(img_geo,(xl-xsize_geo/2,yt-ysize_geo/2,xsize_geo+(xl-xsize_geo/2),ysize_geo+(yt-ysize_geo/2)))
+    img_combine.paste(img_all,(xr-xsize/2,yt-ysize/2,xsize+(xr-xsize/2),ysize+(yt-ysize/2)))
+    img_combine.paste(img_comp_gov,(xl-xsize/2,yb-ysize/2,xsize+(xl-xsize/2),ysize+(yb-ysize/2)))
+    img_combine.paste(img_comp_house,(xr-xsize/2,yb-ysize/2,xsize+(xr-xsize/2),ysize+(yb-ysize/2)))
     ddhq_size=img_ddhq.size
     img_ddhq=img_ddhq.resize((48,48))
-    img_combine.paste(img_ddhq,(0,0,48,48))
+    img_combine.paste(img_ddhq,(0+10,0+10,48+10,48+10))
     
     draw = ImageDraw.Draw(img_combine)
-    font = ImageFont.truetype("timesbi.ttf", 48)
-    font_sm = ImageFont.truetype("times.ttf", 24)
-    draw.text((1*xsize/2+xsize/16, ysize-ysize/4),"1",black,font=font)
-    draw.text((0*xsize/2+xsize/16, 2*ysize-ysize/4),"2",black,font=font)
-    draw.text((2*xsize/2+xsize/16, 2*ysize-ysize/4),"3",black,font=font)
+    font = ImageFont.truetype("FRAHVIT.TTF", 48)
+    font_sm = ImageFont.truetype("micross.ttf", 24)
+    font_half = ImageFont.truetype("micross.ttf", 16)
     
-    draw.text((1*xsize/2, ysize-ysize/8),"Results",black,font=font_sm)
-    draw.text((0*xsize/2, 2*ysize-ysize/8),"vs 2016 GOV",black,font=font_sm)
-    draw.text((2*xsize/2, 2*ysize-ysize/8),"vs 2016 House",black,font=font_sm)
+    # Title
+    title="2017 MT-AL Special Election"
+    draw.text((xc-64*len(title)/4+174, 10),title,black,font=font)    
     
+    draw.text(( 0+10+xsize/16, yt+ysize/2-ysize/4),"1",black,font=font)
+    draw.text(( 0+10+xsize/16, yb+ysize/2-ysize/4),"2",black,font=font)
+    draw.text((xc+10+xsize/16, yb+ysize/2-ysize/4),"3",black,font=font)
+    
+    draw.text((0+10, yt+ysize/2-ysize/8),"Results",black,font=font_sm)
+    draw.text((0+10, yb+ysize/2-ysize/8),"vs 2016 GOV",black,font=font_sm)
+    draw.text((xc+10, yb+ysize/2-ysize/8),"vs 2016 House",black,font=font_sm)
+    
+    margins=['> 0%','> 5%','>10%','>15%','>20%','>30%','>40%','>50%']
+    for k in range(8):
+        draw.rectangle((xc-4*50+50*k,yc-25,xc-4*50+50*(k+1),yc),fill=candidates['QUIST']['color'][k],outline=black)
+        draw.rectangle((xc-4*50+50*k,yc,xc-4*50+50*(k+1),yc+25),fill=candidates['GIANFORTE']['color'][k],outline=black)
+        draw.text((xc-4*50+50*k,yc-50),margins[k],black,font=font_half)        
+        
     img_combine.save(output_png)
 
     img_all.close()
