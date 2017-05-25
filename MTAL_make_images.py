@@ -74,6 +74,22 @@ def color_maps(input_csv,output_png):
             xs=nums[0::2]
             ys=nums[1::2]
             county_xy[county]=int(nums[0]+0.5),int(nums[1]+0.5)
+
+    # Grab coordinates for each county
+    county_geo_xy=dict()
+    with open('./data_files/MT_geo.csv','rb') as csvfile:
+        reader=csv.reader(csvfile)
+        for row in reader:
+            county=row[0]
+            county=re.sub(' and ',' & ',county)
+            s=row[1]
+            s=re.sub('[\[\]]','',s)
+            nums=[float(x) for x in s.split(',')]
+            x=min(int(nums[0]),646-10)
+            x=float(nums[0])*617/649
+            y=min(int(nums[1]),376-10)
+            county_geo_xy[county]=x,y
+
     
     # Get the 2016 gov results for comparison
     margins_gov_2016=dict()
@@ -137,8 +153,11 @@ def color_maps(input_csv,output_png):
     img_all=im.copy() # Top individual vote getters
     img_comp_gov=im.copy() # Compare Gianforte vs 2016 gov
     img_comp_house=im.copy() # Compare Gianforte vs 2016 house
-    img_geo=im2.copy() # Geographic accurate
-    
+    img_geo=im2.convert('1') # Geographic accurate
+    img_geo=img_geo.convert('RGB') # Geographic accurate
+
+    draw_geo=ImageDraw.Draw(img_geo)
+
     mode="RGB"
     #img=img.convert(mode)
     white=ImageColor.getcolor('white',mode)
@@ -178,6 +197,10 @@ def color_maps(input_csv,output_png):
                 color=gray
             if(best_votes>0):
                 ImageDraw.floodfill(img_all,(county_xy[county][0],county_xy[county][1]),color)
+                ImageDraw.floodfill(img_geo,(county_geo_xy[county][0],county_geo_xy[county][1]),color)
+                x=county_geo_xy[county][0]
+                y=county_geo_xy[county][1]
+                #draw_geo.ellipse((x-5,y-5,x+5,y+5),fill=color)
             
             if(all_votes>0):
                 gianforte_margin=float(votes_dict[county]['GIANFORTE']-votes_dict[county]['QUIST'])/all_votes
@@ -244,12 +267,16 @@ def color_maps(input_csv,output_png):
     order=sorted(all_votes_dict,key=all_votes_dict.get,reverse=True)
     
     img_combine=Image.new(mode,(1530,986),"white")
+    #img_combine=Image.new(mode,(1530,1530),"white")
     yt=58+377/2
     yb=58+377+58*2+377/2
     xl=58+649/2
     xr=58+649+58*2+649/2
     xc=58+649+58
     yc=58+377+58
+    #yc=xc
+    #yt=xl
+    #yb=xr
     
     img_ddhq=Image.open('./data_files/cropped-ddhq-icon.png')
     img_combine.paste(img_geo,(xl-xsize_geo/2,yt-ysize_geo/2,xsize_geo+(xl-xsize_geo/2),ysize_geo+(yt-ysize_geo/2)))
@@ -261,7 +288,8 @@ def color_maps(input_csv,output_png):
     img_combine.paste(img_ddhq,(0+10,0+10,48+10,48+10))
     
     draw = ImageDraw.Draw(img_combine)
-    font = ImageFont.truetype("FRAHVIT.TTF", 48)
+    #font = ImageFont.truetype("FRAHVIT.TTF", 48)
+    font = ImageFont.truetype("micross.ttf", 48)
     font_sm = ImageFont.truetype("micross.ttf", 24)
     font_half = ImageFont.truetype("micross.ttf", 16)
     
