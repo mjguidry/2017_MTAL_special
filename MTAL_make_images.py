@@ -65,7 +65,8 @@ def color_maps(input_csv,output_png):
         reader=csv.reader(csvfile)
         for row in reader:
             county=row[0]
-            county=re.sub(' and ',' & ',county)
+            county=re.sub(' and ',' And ',county)
+            county=re.sub(' & ',' And ',county)
             s=row[1]
             s=re.sub('M ','',s)
             s=re.sub('L ','',s)
@@ -81,7 +82,8 @@ def color_maps(input_csv,output_png):
         reader=csv.reader(csvfile)
         for row in reader:
             county=row[0]
-            county=re.sub(' and ',' & ',county)
+            county=re.sub(' and ',' And ',county)
+            county=re.sub(' & ',' And ',county)
             s=row[1]
             s=re.sub('[\[\]]','',s)
             nums=[float(x) for x in s.split(',')]
