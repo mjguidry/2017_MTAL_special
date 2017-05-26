@@ -297,11 +297,13 @@ def color_maps(input_csv,output_png):
     title="2017 MT-AL Special Election"
     draw.text((xc-64*len(title)/4+174, 10),title,black,font=font)    
     
-    draw.text(( 0+10+xsize/16, yt+ysize/2-ysize/4),"1",black,font=font)
-    draw.text(( 0+10+xsize/16, yb+ysize/2-ysize/4),"2",black,font=font)
-    draw.text((xc+10+xsize/16, yb+ysize/2-ysize/4),"3",black,font=font)
+    draw.text(( 0+10+0*xsize/16, yt+ysize/2-ysize/4),"1",black,font=font)
+    draw.text((xc+10+0*xsize/16, yt+ysize/2-ysize/4),"1a",black,font=font)
+    draw.text(( 0+10+0*xsize/16, yb+ysize/2-ysize/4),"2",black,font=font)
+    draw.text((xc+10+0*xsize/16, yb+ysize/2-ysize/4),"3",black,font=font)
     
     draw.text((0+10, yt+ysize/2-ysize/8),"Results",black,font=font_sm)
+    draw.text((xc+10, yt+ysize/2-ysize/8),"Results",black,font=font_sm)
     draw.text((0+10, yb+ysize/2-ysize/8),"vs 2016 GOV",black,font=font_sm)
     draw.text((xc+10, yb+ysize/2-ysize/8),"vs 2016 House",black,font=font_sm)
     
