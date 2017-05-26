@@ -136,7 +136,7 @@ def color_maps(input_csv,output_png):
         else:
             votes_dict[county][candidate]=votes_dict[county][candidate]+votes
     
-    precincts_reporting=len([precinct for precincts in precinct_dict if precinct_dict[precinct]>0])
+    precincts_reporting=len([precinct for precinct in precinct_dict if precinct_dict[precinct]>0])
     precincts=len(precinct_dict)
     
     im = Image.open("./data_files/MTAL_BW.png")
